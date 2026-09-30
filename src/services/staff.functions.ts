@@ -257,7 +257,7 @@ export const setJobStatus = createServerFn({ method: "POST" })
     if (!me.isOwner && !mine) throw new Error("Only the assigned technician or the owner can update this job");
     if (!(NEXT[a.status] ?? []).includes(data.status)) throw new Error(`Can't move a ${a.status} job to ${data.status}`);
     if (data.status === "delayed" && (!data.delayMinutes || !data.reason)) throw new Error("A delay needs minutes and a reason");
-    const patch: Record<string, unknown> = { status: data.status };
+    const patch: any = { status: data.status };
     if (data.status === "delayed") patch.delay_minutes = (a.delay_minutes ?? 0) + data.delayMinutes!;
     await db.from("appointments").update(patch).eq("id", a.id);
     await logEvent(db, {
