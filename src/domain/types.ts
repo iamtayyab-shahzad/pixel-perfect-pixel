@@ -69,7 +69,7 @@ export interface WorkingHours {
   end: LocalTime;
 }
 
-export type AvailabilityBlockKind = "leave" | "sick" | "unavailable" | "training";
+export type AvailabilityBlockKind = "leave" | "sick" | "unavailable" | "training" | "off";
 
 export interface AvailabilityBlock {
   id: ID;
