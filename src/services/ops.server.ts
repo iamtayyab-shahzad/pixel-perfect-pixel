@@ -43,9 +43,9 @@ export interface OpsData {
   skills: { id: string; code: string; label: string }[];
   /** raw rows for UI composition */
   raw: {
-    appointments: Record<string, unknown>[];
-    customers: Record<string, unknown>[];
-    technicians: Record<string, unknown>[];
+    appointments: any[];
+    customers: any[];
+    technicians: any[];
   };
 }
 

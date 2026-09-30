@@ -47,7 +47,7 @@ export interface SchedulingContext {
   slotStepMinutes?: number;
   timezone?: string;
   /** Appointment being rescheduled/reassigned — its own commitment is ignored. */
-  excludeAppointmentId?: ID;
+  excludeAppointmentId?: ID | undefined;
 }
 
 interface Resolved {
