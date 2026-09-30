@@ -41,20 +41,21 @@ export interface LocalParts {
 }
 
 export function toLocalParts(ms: number, tz: string = BUSINESS_TIMEZONE): LocalParts {
-  const parts = Object.fromEntries(
+  const parts: Record<string, string> = Object.fromEntries(
     formatter(tz)
       .formatToParts(new Date(ms))
       .map((p) => [p.type, p.value]),
   );
+  const get = (k: string) => parts[k] ?? "";
   return {
-    date: `${parts.year}-${parts.month}-${parts.day}`,
-    weekday: WEEKDAYS[parts.weekday],
-    minutes: Number(parts.hour) * 60 + Number(parts.minute),
+    date: `${get("year")}-${get("month")}-${get("day")}`,
+    weekday: WEEKDAYS[get("weekday")] ?? 0,
+    minutes: Number(get("hour")) * 60 + Number(get("minute")),
   };
 }
 
 export function parseLocalTime(t: LocalTime): number {
-  const [h, m] = t.split(":").map(Number);
+  const [h = 0, m = 0] = t.split(":").map(Number);
   return h * 60 + m;
 }
 

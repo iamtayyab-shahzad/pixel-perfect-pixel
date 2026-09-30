@@ -57,7 +57,7 @@ const AC: Service = {
 
 // 08:00 CDT = 13:00Z; 17:00 CDT = 22:00Z
 const at = (hhmm: string) => {
-  const [h, m] = hhmm.split(":").map(Number);
+  const [h = 0, m = 0] = hhmm.split(":").map(Number);
   return new Date(Date.UTC(2026, 9, 5, h + 5, m)).toISOString();
 };
 
@@ -180,7 +180,7 @@ describe("Smart Slot Match", () => {
     const { feasible } = findFeasibleSlots(c);
     expect(feasible[0]).toMatchObject({ technicianId: "t2-dana", start: at("08:00") });
     for (let i = 1; i < feasible.length; i++)
-      expect(feasible[i].start >= feasible[i - 1].start).toBe(true);
+      expect(feasible[i]!.start >= feasible[i - 1]!.start).toBe(true);
     expect(feasible.every(isFeasible)).toBe(true);
   });
 
