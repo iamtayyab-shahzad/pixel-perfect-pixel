@@ -62,3 +62,30 @@ export function parseLocalTime(t: LocalTime): number {
 export const MINUTE = 60_000;
 export const toMs = (iso: string): number => Date.parse(iso);
 export const toIso = (ms: number): string => new Date(ms).toISOString();
+
+/** Convert a local wall-clock date ("YYYY-MM-DD") + "HH:mm" in tz to a UTC ISO string (DST-safe). */
+export function zonedToUtc(date: string, hhmm: string, tz: string = BUSINESS_TIMEZONE): string {
+  const [y = 0, mo = 1, d = 1] = date.split("-").map(Number);
+  const target = parseLocalTime(hhmm);
+  let guess = Date.UTC(y, mo - 1, d, Math.floor(target / 60), target % 60);
+  for (let i = 0; i < 3; i++) {
+    const p = toLocalParts(guess, tz);
+    const [py = 0, pm = 1, pd = 1] = p.date.split("-").map(Number);
+    const dayDiff = (Date.UTC(py, pm - 1, pd) - Date.UTC(y, mo - 1, d)) / 86_400_000;
+    const diff = dayDiff * 1440 + p.minutes - target;
+    if (diff === 0) break;
+    guess -= diff * MINUTE;
+  }
+  return toIso(guess);
+}
+
+/** Local "YYYY-MM-DD" for an instant. */
+export const localDate = (ms: number, tz: string = BUSINESS_TIMEZONE) => toLocalParts(ms, tz).date;
+
+/** "9:30 AM" in the business timezone. */
+export function formatLocalTime(iso: string, tz: string = BUSINESS_TIMEZONE): string {
+  return new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(new Date(iso));
+}
+export function formatLocalDay(iso: string, tz: string = BUSINESS_TIMEZONE): string {
+  return new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "long", month: "short", day: "numeric" }).format(new Date(iso));
+}

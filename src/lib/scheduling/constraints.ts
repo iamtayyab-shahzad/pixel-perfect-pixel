@@ -6,25 +6,27 @@
 import type { ID, ISODateTime } from "@/domain/types";
 
 export type ConstraintCode =
+  | "technician_eligible"
   | "skill_match"
-  | "working_hours"
   | "availability_block"
-  | "no_conflict"
+  | "working_hours"
   | "duration_fits"
+  | "no_conflict"
   | "travel_buffer"
   | "window_respected"
-  | "priority_respected"
   | "resource_available";
 
-/** Constraints the evaluator always produces for every candidate. */
+/** Every constraint is evaluated for every candidate — none are declared but skipped. */
 export const REQUIRED_CONSTRAINTS: readonly ConstraintCode[] = [
+  "technician_eligible",
   "skill_match",
   "availability_block",
   "working_hours",
-  "no_conflict",
   "duration_fits",
+  "no_conflict",
   "travel_buffer",
   "window_respected",
+  "resource_available",
 ] as const;
 
 export interface ConstraintResult {

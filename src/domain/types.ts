@@ -69,7 +69,7 @@ export interface WorkingHours {
   end: LocalTime;
 }
 
-export type AvailabilityBlockKind = "leave" | "sick" | "unavailable" | "training";
+export type AvailabilityBlockKind = "leave" | "sick" | "unavailable" | "training" | "off";
 
 export interface AvailabilityBlock {
   id: ID;
@@ -92,20 +92,37 @@ export interface Customer {
   createdAt: ISODateTime;
 }
 
+/** Shared equipment (e.g. refrigerant recovery machine) with a finite quantity. */
+export interface Resource {
+  id: ID;
+  businessId: ID;
+  code: string;
+  label: string;
+  quantity: number;
+}
+
+export interface ResourceRequirement {
+  resourceId: ID;
+  quantity: number;
+}
+
 export interface Service {
   id: ID;
   businessId: ID;
   code: string;
   label: string;
-  requiredSkillId: ID;
+  /** Every skill a technician must hold. Never empty for a bookable service. */
+  requiredSkillIds: ID[];
+  /** Empty array = this service explicitly needs no shared equipment. */
+  resourceRequirements: ResourceRequirement[];
   estimatedMinutes: number;
-  /** Travel/setup buffer added around the job, in minutes. */
+  /** Post-job wrap-up / travel-prep buffer, in minutes. */
   bufferMinutes: number;
 }
 
-export type Priority = "routine" | "soon" | "emergency";
+export type Priority = "emergency" | "high" | "normal" | "routine";
 
-export type InquiryStatus = "new" | "qualified" | "scheduled" | "no_feasible_slot" | "declined";
+export type InquiryStatus = "new" | "needs_info" | "qualified" | "offered" | "booked" | "closed_lost";
 
 export interface Inquiry {
   id: ID;
@@ -123,11 +140,26 @@ export interface Inquiry {
 export type AppointmentStatus =
   | "proposed"
   | "confirmed"
-  | "change_pending"
+  | "en_route"
   | "in_progress"
   | "delayed"
   | "completed"
   | "cancelled";
+
+/** Display-only availability; "busy" is always derived from assignments, never stored. */
+export type TechnicianAvailability =
+  | "available"
+  | "busy"
+  | "off_today"
+  | "on_leave"
+  | "sick"
+  | "unavailable";
+
+export interface AddressSnapshot {
+  addressLine: string;
+  city: string;
+  postalCode: string;
+}
 
 export interface Appointment {
   id: ID;
@@ -137,6 +169,10 @@ export interface Appointment {
   serviceId: ID;
   priority: Priority;
   status: AppointmentStatus;
+  /** Skills required for this job (copied from the service, may be extended). */
+  requiredSkillIds: ID[];
+  /** Address at booking time — later customer edits never rewrite history. */
+  address: AddressSnapshot;
   /** Customer-facing arrival window. */
   windowStart: ISODateTime;
   windowEnd: ISODateTime;
@@ -151,6 +187,9 @@ export interface Assignment {
   appointmentId: ID;
   technicianId: ID;
   status: AssignmentStatus;
+  /** Time the technician is committed: windowStart → windowEnd + estimated minutes. */
+  blockedStart: ISODateTime;
+  blockedEnd: ISODateTime;
   assignedBy: ID; // User id
   assignedAt: ISODateTime;
 }
@@ -161,6 +200,13 @@ export interface Assignment {
  */
 export type JobEventType =
   | "inquiry_received"
+  | "info_requested"
+  | "inquiry_qualified"
+  | "slot_offered"
+  | "technician_unavailable"
+  | "swap_approved"
+  | "appointment_changed"
+  | "status_changed"
   | "appointment_proposed"
   | "appointment_confirmed"
   | "technician_assigned"
@@ -199,6 +245,24 @@ export interface Notification {
   body: string;
   createdAt: ISODateTime;
   sentAt?: ISODateTime;
+}
+
+export type ChangeRequestKind = "reschedule" | "reassign";
+export type ChangeRequestStatus = "pending" | "approved" | "rejected" | "withdrawn";
+
+/** A proposed change to a confirmed appointment. The appointment is untouched until approval. */
+export interface ChangeRequest {
+  id: ID;
+  appointmentId: ID;
+  kind: ChangeRequestKind;
+  status: ChangeRequestStatus;
+  requestedBy?: ID;
+  reason: string;
+  proposedTechnicianId?: ID;
+  proposedWindowStart?: ISODateTime;
+  proposedWindowEnd?: ISODateTime;
+  createdAt: ISODateTime;
+  decidedAt?: ISODateTime;
 }
 
 export interface JobNote {
