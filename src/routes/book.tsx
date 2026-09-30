@@ -98,7 +98,7 @@ function Book() {
   const [followCode, setFollowCode] = useState<string | null | undefined>();
   const [description, setDescription] = useState("");
   const [contact, setContact] = useState<Contact>({ fullName: "", phone: "", email: "", addressLine: "", city: "Austin", postalCode: "" });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof Contact, string>>>({});
   const [days, setDays] = useState<string[]>([]);
   const [date, setDate] = useState<string>();
   const [part, setPart] = useState<Part>("anytime");
@@ -135,8 +135,8 @@ function Book() {
   function validateContact() {
     const r = contactSchema.safeParse(contact);
     if (r.success) { setErrors({}); return true; }
-    const e: Record<string, string> = {};
-    for (const i of r.error.issues) e[String(i.path[0])] = i.message;
+    const e: Partial<Record<keyof Contact, string>> = {};
+    for (const i of r.error.issues) e[i.path[0] as keyof Contact] = i.message;
     setErrors(e);
     return false;
   }
@@ -337,7 +337,7 @@ function Book() {
   );
 }
 
-function Field({ id, label, error, onChange, className, ...rest }: { id: string; label: string; error?: string; value: string; onChange: (v: string) => void; className?: string } & Omit<React.ComponentProps<"input">, "onChange" | "id">) {
+function Field({ id, label, error, onChange, className, ...rest }: { id: string; label: string; error?: string | undefined; value: string; onChange: (v: string) => void; className?: string | undefined } & Omit<React.ComponentProps<"input">, "onChange" | "id">) {
   return (
     <div className={className}>
       <Label htmlFor={id}>{label}</Label>
