@@ -68,9 +68,9 @@ export async function loadOps(db: Db, from: string, to: string): Promise<OpsData
     db.from("resources").select("*").eq("business_id", BUSINESS_ID),
     db.from("skills").select("id,code,label").eq("business_id", BUSINESS_ID),
   ]);
-  const techRows = must(techs) as Record<string, any>[];
-  const apptRows = must(appts) as Record<string, any>[];
-  const sresRows = must(sres) as Record<string, any>[];
+  const techRows = must(techs) as any[];
+  const apptRows = must(appts) as any[];
+  const sresRows = must(sres) as any[];
   return {
     business: must(biz),
     technicians: techRows.map((t) => ({
