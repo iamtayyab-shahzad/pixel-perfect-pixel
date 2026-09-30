@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as BookRouteImport } from './routes/book'
 import { Route as OwnerRouteImport } from './routes/owner'
 import { Route as TechRouteImport } from './routes/tech'
+import { Route as BookingTokenRouteImport } from './routes/booking.$token'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,18 +35,25 @@ const TechRoute = TechRouteImport.update({
   path: '/tech',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BookingTokenRoute = BookingTokenRouteImport.update({
+  id: '/booking/$token',
+  path: '/booking/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/book': typeof BookRoute
   '/owner': typeof OwnerRoute
   '/tech': typeof TechRoute
+  '/booking/$token': typeof BookingTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/book': typeof BookRoute
   '/owner': typeof OwnerRoute
   '/tech': typeof TechRoute
+  '/booking/$token': typeof BookingTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,14 @@ export interface FileRoutesById {
   '/book': typeof BookRoute
   '/owner': typeof OwnerRoute
   '/tech': typeof TechRoute
+  '/booking/$token': typeof BookingTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/book' | '/owner' | '/tech'
+  fullPaths: '/' | '/book' | '/owner' | '/tech' | '/booking/$token'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/book' | '/owner' | '/tech'
-  id: '__root__' | '/' | '/book' | '/owner' | '/tech'
+  to: '/' | '/book' | '/owner' | '/tech' | '/booking/$token'
+  id: '__root__' | '/' | '/book' | '/owner' | '/tech' | '/booking/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +76,7 @@ export interface RootRouteChildren {
   BookRoute: typeof BookRoute
   OwnerRoute: typeof OwnerRoute
   TechRoute: typeof TechRoute
+  BookingTokenRoute: typeof BookingTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +109,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TechRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/booking/$token': {
+      id: '/booking/$token'
+      path: '/booking/$token'
+      fullPath: '/booking/$token'
+      preLoaderRoute: typeof BookingTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +124,7 @@ const rootRouteChildren: RootRouteChildren = {
   BookRoute: BookRoute,
   OwnerRoute: OwnerRoute,
   TechRoute: TechRoute,
+  BookingTokenRoute: BookingTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
