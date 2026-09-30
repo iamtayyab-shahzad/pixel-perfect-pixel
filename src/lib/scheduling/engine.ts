@@ -121,7 +121,9 @@ export function evaluateCandidate(
   results.push({
     code: "availability_block",
     passed: !block,
-    detail: block ? `Overlaps a ${block.kind} block.` : "No leave, sick, unavailable or training block.",
+    detail: block
+      ? `Overlaps a ${block.kind} block.`
+      : "No leave, sick, unavailable or training block.",
   });
 
   // working_hours — whole job must fit one shift on the same local day
@@ -151,10 +153,14 @@ export function evaluateCandidate(
   results.push({
     code: "no_conflict",
     passed: !conflict,
-    detail: conflict ? `Overlaps appointment ${conflict.appointmentId}.` : "No overlapping assigned work.",
+    detail: conflict
+      ? `Overlaps appointment ${conflict.appointmentId}.`
+      : "No overlapping assigned work.",
   });
   const gapMs = r.gap * MINUTE;
-  const tight = busy.find((b) => !overlaps(s, e, b.start, b.end) && overlaps(s - gapMs, e + gapMs, b.start, b.end));
+  const tight = busy.find(
+    (b) => !overlaps(s, e, b.start, b.end) && overlaps(s - gapMs, e + gapMs, b.start, b.end),
+  );
   results.push({
     code: "travel_buffer",
     passed: !conflict && !tight,
@@ -178,7 +184,9 @@ export function evaluateCandidate(
   results.push({
     code: "window_respected",
     passed: inWindow,
-    detail: inWindow ? "Inside the requested customer window." : "Outside the requested customer window.",
+    detail: inWindow
+      ? "Inside the requested customer window."
+      : "Outside the requested customer window.",
   });
 
   return { technicianId, start: toIso(s), end: toIso(e), results };
