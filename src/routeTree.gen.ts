@@ -10,9 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BookRouteImport } from './routes/book'
-import { Route as OwnerRouteImport } from './routes/owner'
-import { Route as TechRouteImport } from './routes/tech'
+import { Route as AuthenticatedOwnerRouteImport } from './routes/_authenticated/owner'
+import { Route as AuthenticatedTechRouteImport } from './routes/_authenticated/tech'
 import { Route as BookingTokenRouteImport } from './routes/booking.$token'
 
 const IndexRoute = IndexRouteImport.update({
@@ -20,20 +22,29 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BookRoute = BookRouteImport.update({
   id: '/book',
   path: '/book',
   getParentRoute: () => rootRouteImport,
 } as any)
-const OwnerRoute = OwnerRouteImport.update({
+const AuthenticatedOwnerRoute = AuthenticatedOwnerRouteImport.update({
   id: '/owner',
   path: '/owner',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const TechRoute = TechRouteImport.update({
+const AuthenticatedTechRoute = AuthenticatedTechRouteImport.update({
   id: '/tech',
   path: '/tech',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const BookingTokenRoute = BookingTokenRouteImport.update({
   id: '/booking/$token',
@@ -43,39 +54,51 @@ const BookingTokenRoute = BookingTokenRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/book': typeof BookRoute
-  '/owner': typeof OwnerRoute
-  '/tech': typeof TechRoute
+  '/owner': typeof AuthenticatedOwnerRoute
+  '/tech': typeof AuthenticatedTechRoute
   '/booking/$token': typeof BookingTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/book': typeof BookRoute
-  '/owner': typeof OwnerRoute
-  '/tech': typeof TechRoute
+  '/owner': typeof AuthenticatedOwnerRoute
+  '/tech': typeof AuthenticatedTechRoute
   '/booking/$token': typeof BookingTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
   '/book': typeof BookRoute
-  '/owner': typeof OwnerRoute
-  '/tech': typeof TechRoute
+  '/_authenticated/owner': typeof AuthenticatedOwnerRoute
+  '/_authenticated/tech': typeof AuthenticatedTechRoute
   '/booking/$token': typeof BookingTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/book' | '/owner' | '/tech' | '/booking/$token'
+  fullPaths: '/' | '/auth' | '/book' | '/owner' | '/tech' | '/booking/$token'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/book' | '/owner' | '/tech' | '/booking/$token'
-  id: '__root__' | '/' | '/book' | '/owner' | '/tech' | '/booking/$token'
+  to: '/' | '/auth' | '/book' | '/owner' | '/tech' | '/booking/$token'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/book'
+    | '/_authenticated/owner'
+    | '/_authenticated/tech'
+    | '/booking/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
   BookRoute: typeof BookRoute
-  OwnerRoute: typeof OwnerRoute
-  TechRoute: typeof TechRoute
   BookingTokenRoute: typeof BookingTokenRoute
 }
 
@@ -88,6 +111,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/book': {
       id: '/book'
       path: '/book'
@@ -95,19 +132,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/owner': {
-      id: '/owner'
+    '/_authenticated/owner': {
+      id: '/_authenticated/owner'
       path: '/owner'
       fullPath: '/owner'
-      preLoaderRoute: typeof OwnerRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedOwnerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/tech': {
-      id: '/tech'
+    '/_authenticated/tech': {
+      id: '/_authenticated/tech'
       path: '/tech'
       fullPath: '/tech'
-      preLoaderRoute: typeof TechRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedTechRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/booking/$token': {
       id: '/booking/$token'
@@ -119,11 +156,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedOwnerRoute: typeof AuthenticatedOwnerRoute
+  AuthenticatedTechRoute: typeof AuthenticatedTechRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedOwnerRoute: AuthenticatedOwnerRoute,
+  AuthenticatedTechRoute: AuthenticatedTechRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
   BookRoute: BookRoute,
-  OwnerRoute: OwnerRoute,
-  TechRoute: TechRoute,
   BookingTokenRoute: BookingTokenRoute,
 }
 export const routeTree = rootRouteImport

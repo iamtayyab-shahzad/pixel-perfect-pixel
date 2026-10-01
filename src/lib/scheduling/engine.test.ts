@@ -181,7 +181,10 @@ describe("existing work", () => {
     const s = evaluateCandidate(c, "t3-sarah", at("11:30"));
     expect(res(s, "no_conflict").passed).toBe(true);
     expect(res(s, "travel_buffer").passed).toBe(false);
-    expect(ok(ctx({ ...booked("t3-sarah", at("10:00")), bufferMinutes: 0 }), "t3-sarah", at("11:30"))).toBe(true);
+    // The existing job keeps its own service buffer (same rule as the DB blocked interval),
+    // so zeroing only the candidate's buffer does not let it start right at 11:30.
+    expect(ok(ctx({ ...booked("t3-sarah", at("10:00")), bufferMinutes: 0 }), "t3-sarah", at("11:30"))).toBe(false);
+    expect(ok(ctx({ ...booked("t3-sarah", at("10:00")), bufferMinutes: 0 }), "t3-sarah", at("12:00"))).toBe(true);
   });
   it("buffer exactly sufficient passes; one minute short fails", () => {
     const c = ctx({ ...booked("t3-sarah", at("10:00")), travelMinutes: 15 }); // gap 45 ⇒ 12:15

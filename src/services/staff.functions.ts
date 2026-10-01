@@ -36,6 +36,16 @@ async function requireStaff(ctx: Ctx) {
   if (!me.isOwner && !me.isTech) throw new Error("Staff access required");
   return me;
 }
+/** Owner: any job. Technician: only jobs currently assigned to them. */
+async function requireJobAccess(ctx: Ctx, appointmentId: string) {
+  const me = await requireStaff(ctx);
+  if (me.isOwner) return me;
+  const { admin } = await import("./ops.server");
+  const { data } = await (await admin()).from("assignments").select("id").eq("appointment_id", appointmentId)
+    .eq("technician_id", me.technicianId ?? "00000000-0000-0000-0000-000000000000").neq("status", "replaced").limit(1);
+  if (!data?.length) throw new Error("This job isn't assigned to you");
+  return me;
+}
 
 const AVAIL: Record<string, string> = {
   off: "off_today",
@@ -199,7 +209,7 @@ export const getJob = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: uuid }).parse(d))
   .handler(async ({ data, context }) => {
-    const me = await requireStaff(context as Ctx);
+    const me = await requireJobAccess(context as Ctx, data.id);
     const { admin } = await import("./ops.server");
     const db = await admin();
     const { data: a } = await db
@@ -221,7 +231,7 @@ export const getJob = createServerFn({ method: "POST" })
       priority: a.priority as string,
       service: a.services?.label as string,
       problem: a.problem_summary as string,
-      customer: a.customers,
+      customer: me.isOwner ? a.customers : { full_name: a.customers?.full_name, phone: a.customers?.phone, email: null },
       address: `${a.address_line}, ${a.city} ${a.postal_code}`,
       windowStart: a.window_start as string,
       windowEnd: a.window_end as string,
@@ -371,6 +381,8 @@ export const decideChange = createServerFn({ method: "POST" })
       await logEvent(db, { appointment_id: a.id, type: "note_added", ...actor, reason: `Change request rejected: ${c.reason}` });
       return { ok: true };
     }
+    if (!c.proposed_window_start || !c.proposed_technician_id || !c.proposed_window_end)
+      return { ok: false, reason: "This request has no proposed time yet. Pick a validated alternative first." };
     // Validate the proposed assignment with Smart Slot Match before approval
     const d = localDate(Date.parse(c.proposed_window_start));
     const from = zonedToUtc(d, "00:00");
@@ -385,7 +397,7 @@ export const decideChange = createServerFn({ method: "POST" })
     if (!isFeasible(slot)) return { ok: false, reason: slot.results.filter((r) => !r.passed).map((r) => r.detail).join(" ") };
     const old = (a.assignments as any[]).find((s) => s.status !== "replaced");
     const { data: newTech } = await db.from("technicians").select("full_name").eq("id", c.proposed_technician_id).single();
-    const blockedEnd = new Date(Date.parse(c.proposed_window_end) + (a.estimated_minutes + service.bufferMinutes) * 60_000).toISOString();
+    const blockedEnd = new Date(Date.parse(c.proposed_window_end) + (a.estimated_minutes + service.bufferMinutes + ops.business.travel_minutes) * 60_000).toISOString();
     if (old) await db.from("assignments").update({ status: "replaced" }).eq("id", old.id);
     const ins = await db.from("assignments").insert({ business_id: BUSINESS_ID, appointment_id: a.id, technician_id: c.proposed_technician_id, blocked_start: c.proposed_window_start, blocked_end: blockedEnd, assigned_by: (context as Ctx).userId });
     if (ins.error) {
@@ -429,7 +441,7 @@ export const addNote = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: uuid, body: z.string().trim().min(1).max(2000) }).parse(d))
   .handler(async ({ data, context }) => {
-    const me = await requireStaff(context as Ctx);
+    const me = await requireJobAccess(context as Ctx, data.id);
     const { admin, BUSINESS_ID, logEvent } = await import("./ops.server");
     const db = await admin();
     await db.from("job_notes").insert({ business_id: BUSINESS_ID, appointment_id: data.id, author_label: me.name ?? "Staff", author_user_id: (context as Ctx).userId, body: data.body });
@@ -467,7 +479,7 @@ export const jobRecordPdf = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: uuid }).parse(d))
   .handler(async ({ data, context }) => {
-    await requireStaff(context as Ctx);
+    await requireJobAccess(context as Ctx, data.id);
     const { buildJobPdf } = await import("./pdf.server");
     return { base64: await buildJobPdf(data.id) };
   });

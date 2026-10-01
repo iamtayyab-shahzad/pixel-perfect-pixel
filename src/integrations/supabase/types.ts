@@ -949,6 +949,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_assigned: {
+        Args: { _appointment_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
