@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getTechDay } from "@/services/staff.functions";
 import { EmptyState, PageHeader, Section, StatusBadge } from "@/components/app/primitives";
 import { JobDrawer, JobStatus, Priority, errMsg, win } from "@/components/app/jobs";
-import { SignOut } from "@/components/app/SignOut";
 import { Button } from "@/components/ui/button";
 import { localDate, formatLocalDay } from "@/lib/scheduling/time";
 
@@ -36,15 +35,20 @@ function Tech() {
         eyebrow="Technician"
         title={q.data?.technician ? `${q.data.technician.name.split(" ")[0]}'s jobs` : "My jobs"}
         description={`${formatLocalDay(`${date}T17:00:00Z`)} · in order, with the arrival window promised to each customer`}
-        actions={<SignOut />}
       />
       {q.data?.me.isOwner && q.data.technicians.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="View as technician">
-          {q.data.technicians.map((x) => (
-            <Button key={x.id} size="sm" variant={q.data!.technician?.id === x.id ? "default" : "outline"} onClick={() => setTechId(x.id)}>
-              {x.name.split(" ")[0]}
-            </Button>
-          ))}
+        <div className="mt-4 rounded-xl border border-cta/40 bg-surface p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm"><strong>Owner preview</strong> — you're seeing exactly what {q.data.technician?.name.split(" ")[0] ?? "a technician"} sees on their phone.</p>
+            <Button asChild size="sm" variant="outline"><Link to="/owner">← Back to dispatch</Link></Button>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="View as technician">
+            {q.data.technicians.map((x) => (
+              <Button key={x.id} size="sm" variant={q.data!.technician?.id === x.id ? "default" : "outline"} onClick={() => setTechId(x.id)}>
+                {x.name.split(" ")[0]}
+              </Button>
+            ))}
+          </div>
         </div>
       )}
       {q.isLoading ? (
