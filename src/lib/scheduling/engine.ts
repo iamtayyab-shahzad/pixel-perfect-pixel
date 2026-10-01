@@ -89,14 +89,22 @@ function liveAppointments(ctx: SchedulingContext) {
   );
 }
 
+/**
+ * Blocked interval of an existing job — the ONE definition shared with the database
+ * (assignments.blocked_start/blocked_end): [windowStart, windowEnd + estimated + own buffer + travel).
+ */
 function busyIntervals(ctx: SchedulingContext, technicianId: ID) {
   const apptById = new Map(liveAppointments(ctx).map((a) => [a.id, a]));
-  const out: { appointmentId: ID; start: number; end: number }[] = [];
+  const services = new Map((ctx.services ?? [ctx.service]).map((sv) => [sv.id, sv]));
+  const r = resolve(ctx);
+  const out: { appointmentId: ID; start: number; end: number; gapEnd: number }[] = [];
   for (const asg of ctx.assignments) {
     if (asg.technicianId !== technicianId || !BLOCKING_ASSIGNMENT.has(asg.status)) continue;
     const appt = apptById.get(asg.appointmentId);
     if (!appt) continue;
-    out.push({ appointmentId: appt.id, ...commitmentOf(appt) });
+    const c = commitmentOf(appt);
+    const buf = services.get(appt.serviceId)?.bufferMinutes ?? r.buffer;
+    out.push({ appointmentId: appt.id, ...c, gapEnd: c.end + (buf + r.travel) * MINUTE });
   }
   return out;
 }
@@ -204,10 +212,8 @@ export function evaluateCandidate(
       ? `Overlaps the committed window of appointment ${conflict.appointmentId}.`
       : "No overlapping assigned work.",
   });
-  const gap = (r.buffer + r.travel) * MINUTE;
-  const tight = busy.find(
-    (b) => !overlaps(s, e, b.start, b.end) && (overlaps(s - gap, s, b.start, b.end) || overlaps(e, e + gap, b.start, b.end)),
-  );
+  // Same rule as the DB exclusion constraint: both blocked intervals (job + own buffer + travel) must not overlap.
+  const tight = busy.find((b) => !overlaps(s, e, b.start, b.end) && overlaps(s, e + post, b.start, b.gapEnd));
   results.push({
     code: "travel_buffer",
     passed: !conflict && !tight,
