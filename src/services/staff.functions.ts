@@ -381,6 +381,8 @@ export const decideChange = createServerFn({ method: "POST" })
       await logEvent(db, { appointment_id: a.id, type: "note_added", ...actor, reason: `Change request rejected: ${c.reason}` });
       return { ok: true };
     }
+    if (!c.proposed_window_start || !c.proposed_technician_id || !c.proposed_window_end)
+      return { ok: false, reason: "This request has no proposed time yet. Pick a validated alternative first." };
     // Validate the proposed assignment with Smart Slot Match before approval
     const d = localDate(Date.parse(c.proposed_window_start));
     const from = zonedToUtc(d, "00:00");
