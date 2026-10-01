@@ -122,7 +122,9 @@ function Book() {
   const problemReady = !!problem && description.trim().length >= 5 && (!!service || needsCall);
 
   useEffect(() => { if (problemId === "stopped" || problemId === "leak") setPriority((p) => (p === "routine" ? "normal" : p)); }, [problemId]);
-  useEffect(() => window.scrollTo({ top: 0, behavior: "smooth" }), [step]);
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [step]);
 
   const answers = () => {
     const a: Record<string, string> = { problem: problem?.label ?? "" };
