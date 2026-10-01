@@ -32,7 +32,7 @@ function Owner() {
   const [blockFor, setBlockFor] = useState<{ id: string; name: string } | null>(null);
   const qc = useQueryClient();
   const fn = useServerFn(getDispatch);
-  const q = useQuery({ queryKey: ["dispatch", date], queryFn: () => fn({ data: { date } }), refetchInterval: 30_000 });
+  const q = useQuery({ queryKey: ["dispatch", date], queryFn: () => fn({ data: { date } }), refetchInterval: 30_000, retry: false });
   const clearFn = useServerFn(clearBlock);
   const inqFn = useServerFn(updateInquiry);
   const clear = useMutation({ mutationFn: (id: string) => clearFn({ data: { id } }), onSuccess: () => qc.invalidateQueries(), onError: (e) => toast.error(errMsg(e)) });
