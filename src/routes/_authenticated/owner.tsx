@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { clearBlock, getDispatch, markUnavailable, updateInquiry } from "@/services/staff.functions";
 import { EmptyState, PageHeader, Section, StatusBadge } from "@/components/app/primitives";
 import { AVAILABILITY, JobDrawer, JobStatus, Priority, errMsg, win } from "@/components/app/jobs";
-import { SignOut } from "@/components/app/SignOut";
 import { TeamEditor } from "@/components/app/TeamEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,8 +56,6 @@ function Owner() {
             <Button variant="outline" size="sm" onClick={() => setDate(day(date, -1))} aria-label="Previous day">←</Button>
             <Button variant="outline" size="sm" onClick={() => setDate(localDate(Date.now()))}>Today</Button>
             <Button variant="outline" size="sm" onClick={() => setDate(day(date, 1))} aria-label="Next day">→</Button>
-            <Button asChild variant="ghost" size="sm"><Link to="/tech">Technician view</Link></Button>
-            <SignOut />
           </div>
         }
       />
@@ -71,6 +68,19 @@ function Owner() {
         </EmptyState>
       ) : q.data ? (
         <>
+          <dl className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-4">
+            {[
+              ["Needs attention", q.data.attention.length, q.data.attention.length ? "text-cta" : ""],
+              ["Jobs today", q.data.jobs.filter((j) => j.status !== "cancelled").length, ""],
+              ["Technicians available", `${q.data.technicians.filter((x) => x.availability === "available" || x.availability === "busy").length}/${q.data.technicians.length}`, ""],
+              ["Messages to send", q.data.pendingNotifications.length, ""],
+            ].map(([k, v, c]) => (
+              <div key={k as string} className="bg-card p-4">
+                <dt className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">{k}</dt>
+                <dd className={`mt-1 text-2xl font-semibold ${c}`}>{v}</dd>
+              </div>
+            ))}
+          </dl>
           <Section title={`Needs attention · ${q.data.attention.length}`}>
             {q.data.attention.length ? (
               <ul className="grid gap-2 md:grid-cols-2">
