@@ -51,7 +51,7 @@ export function TeamEditor({ target, onClose }: { target: string | null; onClose
 
   return (
     <Dialog open={!!target} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] w-[calc(100%-1.5rem)] overflow-y-auto rounded-xl">
         <DialogHeader>
           <DialogTitle>{existing ? `Edit ${existing.fullName}` : "Add technician"}</DialogTitle>
           <DialogDescription>Smart Slot Match only offers a technician for jobs that match their specialties and working hours.</DialogDescription>
