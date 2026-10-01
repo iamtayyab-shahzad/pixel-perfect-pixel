@@ -7,6 +7,7 @@ import { clearBlock, getDispatch, markUnavailable, updateInquiry } from "@/servi
 import { EmptyState, PageHeader, Section, StatusBadge } from "@/components/app/primitives";
 import { AVAILABILITY, JobDrawer, JobStatus, Priority, errMsg, win } from "@/components/app/jobs";
 import { SignOut } from "@/components/app/SignOut";
+import { TeamEditor } from "@/components/app/TeamEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/_authenticated/owner")({
 function Owner() {
   const [date, setDate] = useState(() => localDate(Date.now()));
   const [job, setJob] = useState<string | null>(null);
+  const [edit, setEdit] = useState<string | null>(null);
   const [blockFor, setBlockFor] = useState<{ id: string; name: string } | null>(null);
   const qc = useQueryClient();
   const fn = useServerFn(getDispatch);
@@ -93,6 +95,7 @@ function Owner() {
           </Section>
 
           <Section title="Team">
+            <div className="mb-3 flex justify-end"><Button size="sm" variant="outline" onClick={() => setEdit("new")}>Add technician</Button></div>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {q.data.technicians.map((tch) => {
                 const [label, tone] = AVAILABILITY[tch.availability] ?? ["—", "idle" as const];
@@ -104,7 +107,8 @@ function Owner() {
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">{tch.skills.map((s) => s.label).join(" · ")}</p>
                     {tch.block?.note && <p className="mt-1 text-xs">{tch.block.note}</p>}
-                    <div className="mt-3">
+                    <div className="mt-3 flex flex-wrap gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => setEdit(tch.id)}>Edit</Button>
                       {tch.block ? (
                         <Button size="sm" variant="ghost" disabled={clear.isPending} onClick={() => clear.mutate(tch.block!.id)}>Mark available again</Button>
                       ) : (
@@ -167,6 +171,7 @@ function Owner() {
       ) : null}
 
       <JobDrawer id={job} mode="owner" onClose={() => setJob(null)} />
+      <TeamEditor target={edit} onClose={() => setEdit(null)} />
       <BlockDialog tech={blockFor} date={date} onClose={() => setBlockFor(null)} />
     </div>
   );
