@@ -1,10 +1,46 @@
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getBooking } from "@/services/booking.functions";
+import { cancelBooking, getBooking } from "@/services/booking.functions";
 import { EmptyState, StatusBadge } from "@/components/app/primitives";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { formatLocalDay, formatLocalTime } from "@/lib/scheduling/time";
+
+function CancelBox({ token, onDone }: { token: string; onDone: () => void }) {
+  const fn = useServerFn(cancelBooking);
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  if (!open)
+    return (
+      <div className="mt-6 rounded-xl border bg-card p-4 text-sm">
+        <p className="font-medium">Need to change plans?</p>
+        <p className="mt-1 text-muted-foreground">To pick a different time, call us and we'll move it — you'll see the old and new time here.</p>
+        <Button className="mt-3" variant="outline" size="sm" onClick={() => setOpen(true)}>Cancel this visit</Button>
+      </div>
+    );
+  return (
+    <div className="mt-6 rounded-xl border bg-card p-4 text-sm">
+      <label className="grid gap-1.5">
+        <span className="font-medium">Why are you cancelling?</span>
+        <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. The AC started working again" />
+      </label>
+      {err && <p role="alert" className="mt-2 text-destructive">{err}</p>}
+      <div className="mt-3 flex gap-2">
+        <Button variant="destructive" size="sm" disabled={busy || reason.trim().length < 2} onClick={async () => {
+          setBusy(true); setErr(null);
+          try { const r = await fn({ data: { token, reason } }); if (!r.ok) setErr(r.reason ?? "Couldn't cancel."); else onDone(); }
+          catch { setErr("Couldn't cancel right now. Please call us."); }
+          finally { setBusy(false); }
+        }}>{busy ? "Cancelling…" : "Confirm cancellation"}</Button>
+        <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>Keep my visit</Button>
+      </div>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/booking/$token")({
   head: () => ({
@@ -76,6 +112,7 @@ function BookingPage() {
       {b.notifications.length > 0 && (
         <p className="mt-1 text-xs text-muted-foreground">Confirmation message: {b.notifications[0]!.status_detail ?? b.notifications[0]!.status}</p>
       )}
+      {["confirmed", "proposed", "delayed"].includes(b.status) && <CancelBox token={token} onDone={() => q.refetch()} />}
       <div className="mt-6"><Button asChild variant="outline"><Link to="/">Back to home</Link></Button></div>
     </div>
   );
