@@ -483,3 +483,69 @@ export const jobRecordPdf = createServerFn({ method: "POST" })
     const { buildJobPdf } = await import("./pdf.server");
     return { base64: await buildJobPdf(data.id) };
   });
+
+/** Owner: full team setup — profile, specialties and weekly working hours. */
+export const getTeam = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await requireOwner(context as Ctx);
+    const { admin } = await import("./ops.server");
+    const db = await admin();
+    const [t, s, ts, wh] = await Promise.all([
+      db.from("technicians").select("id, full_name, email, phone, status, is_owner").order("created_at"),
+      db.from("skills").select("id, label").order("label"),
+      db.from("technician_skills").select("technician_id, skill_id, level"),
+      db.from("working_hours").select("technician_id, weekday, start_time, end_time"),
+    ]);
+    const skills = (s.data ?? []) as { id: string; label: string }[];
+    return {
+      skills,
+      technicians: ((t.data ?? []) as any[]).map((x) => ({
+        id: x.id as string, fullName: x.full_name as string, email: (x.email ?? "") as string, phone: (x.phone ?? "") as string,
+        active: x.status === "active", isOwner: !!x.is_owner,
+        skills: ((ts.data ?? []) as any[]).filter((k) => k.technician_id === x.id).map((k) => ({ skillId: k.skill_id as string, level: k.level as "primary" | "capable" })),
+        hours: ((wh.data ?? []) as any[]).filter((h) => h.technician_id === x.id).map((h) => ({ weekday: h.weekday as number, start: h.start_time as string, end: h.end_time as string })),
+      })),
+    };
+  });
+
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+export const saveTechnician = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    id: uuid.optional(),
+    fullName: z.string().trim().min(2).max(80),
+    email: z.string().trim().email().max(160).optional().or(z.literal("")),
+    phone: z.string().trim().max(30).optional(),
+    active: z.boolean(),
+    skills: z.array(z.object({ skillId: uuid, level: z.enum(["primary", "capable"]) })).min(1, "Pick at least one specialty").max(30),
+    hours: z.array(z.object({ weekday: z.number().int().min(0).max(6), start: hhmm, end: hhmm })).max(7)
+      .refine((h) => h.every((x) => x.start < x.end), "Each shift must end after it starts")
+      .refine((h) => new Set(h.map((x) => x.weekday)).size === h.length, "One shift per day"),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await requireOwner(context as Ctx);
+    const { admin, BUSINESS_ID } = await import("./ops.server");
+    const db = await admin();
+    const row = { full_name: data.fullName, email: data.email ? data.email.toLowerCase() : null, phone: data.phone || null, status: data.active ? "active" : "inactive" };
+    let id = data.id;
+    if (id) {
+      const { data: cur } = await db.from("technicians").select("is_owner").eq("id", id).single();
+      if (cur?.is_owner && !data.active) throw new Error("The owner can't be deactivated");
+      const { error } = await db.from("technicians").update(row).eq("id", id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { data: ins, error } = await db.from("technicians").insert({ ...row, business_id: BUSINESS_ID, is_owner: false }).select("id").single();
+      if (error) throw new Error(error.message.includes("duplicate") ? "That email is already on the team" : error.message);
+      id = ins.id as string;
+    }
+    await db.from("technician_skills").delete().eq("technician_id", id);
+    const { error: e1 } = await db.from("technician_skills").insert(data.skills.map((k) => ({ technician_id: id!, skill_id: k.skillId, level: k.level })));
+    if (e1) throw new Error(e1.message);
+    await db.from("working_hours").delete().eq("technician_id", id);
+    if (data.hours.length) {
+      const { error: e2 } = await db.from("working_hours").insert(data.hours.map((h) => ({ technician_id: id!, weekday: h.weekday, start_time: h.start, end_time: h.end })));
+      if (e2) throw new Error(e2.message);
+    }
+    return { ok: true, id };
+  });
